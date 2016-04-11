@@ -204,6 +204,7 @@ window.rhubarb.validation.standardValidations.lengthGreaterThan = function(great
       var compareTo = (orEqual) ? greaterThan - 1 : greaterThan;
       if (value.length > greaterThan){
           failedCallback("The length must less than " + (orEqual ? " (or equal to) " : "" ) + greaterThan);
+          return;
       }
 
       successCallback();
@@ -214,10 +215,24 @@ window.rhubarb.validation.standardValidations.isEmailAddress = function(){
     return function(value, successCallback, failedCallback){
         if (value.indexOf("@") == -1){
             failedCallback("Email addresses must contain a '@' character");
+            return;
         }
 
         successCallback();
     }
+};
+
+window.rhubarb.validation.standardValidations.matches = function(matchSourceCallback){
+  return function(value, successCallback, failedCallback){
+      var compareTo = matchSourceCallback();
+
+      if (compareTo != value){
+          failedCallback("The values must match");
+          return;
+      }
+
+      successCallback();
+  };
 };
 
 window.rhubarb.validation.standardValidations.allValid = function(validations) {
