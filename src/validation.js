@@ -16,6 +16,11 @@ if (!window.rhubarb.validation.sources){
     window.rhubarb.validation.sources = {};
 }
 
+if (!window.validation){
+    // Provide a quick global alias to validation if that is possible
+    window.validation = window.rhubarb.validation;
+}
+
 window.rhubarb.validation.states = {
     "notTested": 0,
     'valid': 1,
@@ -26,38 +31,58 @@ window.rhubarb.validation.states = {
 window.rhubarb.validation.validator = function(){
 
     this._checks = [];
-    this._sources = [];
+    this._source = false;
     this._targetElement = false;
+    this._isRequired = false;
+    this._hasValue = false;
 
+    this.requiredMessage = "A value is required here.";
     this.state = window.rhubarb.validation.states.nottested;
     this.errorMessages = [];
 
     var self = this;
 
-    this.check = function(callback){
-        this._checks.push(callback);
+    this.require = function(){
+        self._isRequired = true;
+
+        return self;
     };
 
-    this.source = function(source){
-        self._sources.push(source);
+    this.check = function(callback){
+        self._checks.push(callback);
+
+        return self;
+    };
+
+    this.setSource = function(source){
+        self._source = source;
         source.triggerValidation = function(value){
-            self.validate(value);
+            self.validate();
         };
+
+        return self;
     };
 
     this.setTargetElement = function(targetElement){
         self._targetElement = targetElement;
+
+        return self;
     };
 
-    this.validate = function(value){
+    this.validate = function(){
+
+        var value = (self._source) ? self._source.getValue() : false;
+
+        self._hasValue = !!value;
+
+        // Update our status to checking (this might be used for slow validations)
+        self.state = window.rhubarb.validation.states.checking;
+
+        // Reset our error messages in case this is a second attempt
+        self.errorMessages = [];
+
         for(var i = 0; i < self._checks.length; i++){
             var check = self._checks[i];
-
-            // Update our status to checking (this might be used for slow validations)
-            self.state = window.rhubarb.validations.states.checking;
-
-            // Reset our error messages in case this is a second attempt
-            self.errorMessages = [];
 
             try {
                 check(value);
@@ -67,7 +92,19 @@ window.rhubarb.validation.validator = function(){
             }
         }
 
-        self.updateClasses();
+        if (self._isRequired && !self._hasValue){
+            self.errorMessages.push(self.requiredMessage);
+        }
+
+        if (self.errorMessages.length > 0){
+            self.state = window.rhubarb.validation.states.invalid;
+            self.updateClasses();
+            return false;
+        } else {
+            self.state = window.rhubarb.validation.states.valid;
+            self.updateClasses();
+            return true;
+        }
     };
 
     this.updateClasses = function(){
@@ -76,28 +113,33 @@ window.rhubarb.validation.validator = function(){
             return;
         }
 
-        var classes = [];
+        self._targetElement.classList.remove("is-valid", "is-checking", "is-invalid", "is-not-tested", "is-required", "is-missing");
 
         switch(self.state){
-            case window.rhubarb.validations.states.valid:
-                classes.push("is-valid");
+            case window.rhubarb.validation.states.valid:
+                self._targetElement.classList.add("is-valid");
                 break;
-            case window.rhubarb.validations.states.checking:
-                classes.push("is-checking");
+            case window.rhubarb.validation.states.checking:
+                self._targetElement.classList.add("is-checking");
                 break;
-            case window.rhubarb.validations.states.invalid:
-                classes.push("is-invalid");
+            case window.rhubarb.validation.states.invalid:
+                self._targetElement.classList.add("is-invalid");
                 break;
-            case window.rhubarb.validations.states.notTested:
-                classes.push("not-tested");
+            case window.rhubarb.validation.states.notTested:
+                self._targetElement.classList.add("is-not-tested");
                 break;
         }
 
-        self._targetElement.classList.remove("is-valid", "is-checking", "is-invalid", "not-tested");
-        self._targetElement.classList.add(classes);
+        if (self._isRequired){
+            self._targetElement.classList.add("is-required");
+
+            if (!self._hasValue){
+                self._targetElement.classList.add("is-missing");
+            }
+        }
 
         // Try and find an error container and update the message with our error messages.
-        var errorMessage = self._targetElement.querySelector(".error-message");
+        var errorMessage = self._targetElement.querySelector(".js-validation-message");
 
         if (errorMessage){
             errorMessage.innerHTML = "<p>" + self.errorMessages.join("<br/>") + "</p>";
@@ -105,7 +147,7 @@ window.rhubarb.validation.validator = function(){
     }
 };
 
-windows.rhubarb.validation.sources.fromTextBox = function(textBoxElement){
+window.rhubarb.validation.sources.fromTextBox = function(textBoxElement){
     var self = this;
 
     this.triggerValidation = function(){};
@@ -143,15 +185,21 @@ window.rhubarb.validation.standardValidations.allValid = function(validations) {
         var errors = [];
 
         for (var i = 0; i < validations.length; i++) {
-            var validation = validations[i];
+            var validationToCheck = validations[i];
 
-            if (validation.state != window.rhubarb.validation.states.valid) {
-                errors.push(validation.errorMessages);
+            validationToCheck.validate();
+
+            if (validationToCheck.state != window.rhubarb.validation.states.valid) {
+                errors.push(validationToCheck.errorMessages);
             }
         }
 
+        if (errors.length > 1) {
+            throw new Error("Sorry, multiple errors exist on this form.");
+        }
+
         if (errors.length > 0) {
-            throw new Error()
+            throw new Error("Sorry, there is an error on this form.");
         }
     };
 };
