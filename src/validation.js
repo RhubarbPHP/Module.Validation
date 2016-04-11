@@ -8,12 +8,16 @@ if (!window.rhubarb.validation){
     window.rhubarb.validation = {};
 }
 
-if (!window.rhubarb.validation.standardValidations){
-    window.rhubarb.validation.standardValidations = {};
+if (!window.rhubarb.validation.common){
+    window.rhubarb.validation.common = {};
 }
 
 if (!window.rhubarb.validation.sources){
     window.rhubarb.validation.sources = {};
+}
+
+if (!window.rhubarb.validation.triggers){
+    window.rhubarb.validation.triggers = {};
 }
 
 if (!window.validation){
@@ -31,6 +35,7 @@ window.rhubarb.validation.states = {
 window.rhubarb.validation.validator = function(){
 
     this._checks = [];
+    this._triggers = [];
     this._source = false;
     this._targetElement = false;
     this._isRequired = false;
@@ -54,16 +59,84 @@ window.rhubarb.validation.validator = function(){
         return self;
     };
 
-    this.setSource = function(source){
-        self._source = source;
-        source.triggerValidation = function(value){
+    this.addTrigger = function(broker){
+
+        // Try and upscale any strings passed to an HTML element
+        try {
+            broker = this.makeHtmlElement(broker);
+        } catch (error) {
+            throw new Error("A string '" + broker + "' passed to addTrigger was not a valid HTML Element ID.");
+        }
+
+        if (broker instanceof HTMLElement){
+            broker = window.rhubarb.validation.triggers.onHtmlElementValueChanged(broker);
+        }
+
+        self._triggers.push(broker);
+
+        broker.trigger = function(value){
             self.validate();
         };
 
         return self;
     };
 
+    this.setSource = function(source){
+        try {
+            self._source = this.makeHtmlElementValueCallback(source);
+        } catch (error){
+            if (error.message == "string" ){
+                throw new Error("A string '" + source + "' passed to setSource was not a valid HTML Element ID." );
+            } else {
+                throw new Error("An element passed to setSource was not a valid HTML input element." );
+            }
+        }
+
+        return self;
+    };
+
+    this.makeHtmlElement = function(nameOrElement){
+        if (typeof nameOrElement == "string"){
+            nameOrElement = document.getElementById(nameOrElement);
+
+            if (!nameOrElement){
+                throw new Error(nameOrElement + " is not an HTML element" );
+            }
+        }
+
+        return nameOrElement;
+    };
+
+    this.makeHtmlElementValueCallback = function(elementOrCallback){
+
+        try {
+            elementOrCallback = this.makeHtmlElement(elementOrCallback);
+        } catch(error){
+            throw new Error("string");
+        }
+
+        if (elementOrCallback instanceof HTMLElement){
+            if ( elementOrCallback.keys.indexOf("value") === -1 ) {
+                throw new Error("element");
+            }
+
+            elementOrCallback = function () {
+                return elementOrCallback.value;
+            };
+        }
+
+        return elementOrCallback;
+    };
+
     this.setTargetElement = function(targetElement){
+
+        // Try and upscale any strings passed to an HTML element
+        try {
+            targetElement = this.makeHtmlElement(targetElement);
+        } catch (error) {
+            throw new Error("A string '" + targetElement + "' passed to setTargetElement was not a valid HTML Element ID.");
+        }
+
         self._targetElement = targetElement;
 
         return self;
@@ -71,7 +144,7 @@ window.rhubarb.validation.validator = function(){
 
     this.validate = function(successCallback, failureCallback){
 
-        var value = (self._source) ? self._source.getValue() : false;
+        var value = (self._source) ? self._source() : false;
 
         self._hasValue = !!value;
 
@@ -183,23 +256,27 @@ window.rhubarb.validation.validator = function(){
     }
 };
 
-window.rhubarb.validation.sources.fromTextBox = function(textBoxElement){
-    var self = this;
-
-    this.triggerValidation = function(){};
-    this.getValue = function(){
-        return textBoxElement.value;
+window.rhubarb.validation.sources.fromHtmlElement = function(htmlElement){
+    return function(){
+        return htmlElement.value;
     };
+};
 
-    textBoxElement.addEventListener('change', function(){
-       self.triggerValidation(self.getValue());
+window.rhubarb.validation.triggers.onHtmlElementValueChanged = function(htmlElement){
+    var broker = {};
+    broker.trigger = function(){};
+
+    htmlElement.addEventListener('change', function(){
+        broker.trigger();
     });
+
+    return broker;
 };
 
 // Define our standard validation routines. You can of course create your own. The validation framework requires
 // a callback for each validation routine. Our pattern here is to define a function that **returns a callback**.
 // This allows our outer function to define arguments that are then presented to the programmer in any good IDE.
-window.rhubarb.validation.standardValidations.lengthGreaterThan = function(greaterThan, orEqual){
+window.rhubarb.validation.common.lengthGreaterThan = function(greaterThan, orEqual){
   return function (value, successCallback, failedCallback){
       var compareTo = (orEqual) ? greaterThan - 1 : greaterThan;
       if (value.length > greaterThan){
@@ -211,7 +288,7 @@ window.rhubarb.validation.standardValidations.lengthGreaterThan = function(great
   };
 };
 
-window.rhubarb.validation.standardValidations.isEmailAddress = function(){
+window.rhubarb.validation.common.isEmailAddress = function(){
     return function(value, successCallback, failedCallback){
         if (value.indexOf("@") == -1){
             failedCallback("Email addresses must contain a '@' character");
@@ -222,7 +299,7 @@ window.rhubarb.validation.standardValidations.isEmailAddress = function(){
     }
 };
 
-window.rhubarb.validation.standardValidations.matches = function(matchSourceCallback){
+window.rhubarb.validation.common.matches = function(matchSourceCallback){
   return function(value, successCallback, failedCallback){
       var compareTo = matchSourceCallback();
 
@@ -235,7 +312,7 @@ window.rhubarb.validation.standardValidations.matches = function(matchSourceCall
   };
 };
 
-window.rhubarb.validation.standardValidations.allValid = function(validations) {
+window.rhubarb.validation.common.allValid = function(validations) {
     return function (value, successCallback, failedCallback) {
         var errors = [];
         var validationsToCheck = validations;
