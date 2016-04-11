@@ -262,13 +262,3 @@ window.rhubarb.validation.standardValidations.allValid = function(validations) {
         checkAll();
     };
 };
-
-// A facility for doing asynchronous validiation
-
-window.rhubarb.validation.AsyncValidation = new function(){
-    var self = this;
-
-    this.raiseError = function(errorMessage) {
-
-    }
-};
