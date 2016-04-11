@@ -69,7 +69,7 @@ window.rhubarb.validation.validator = function(){
         return self;
     };
 
-    this.validate = function(){
+    this.validate = function(successCallback, failureCallback){
 
         var value = (self._source) ? self._source.getValue() : false;
 
@@ -77,34 +77,70 @@ window.rhubarb.validation.validator = function(){
 
         // Update our status to checking (this might be used for slow validations)
         self.state = window.rhubarb.validation.states.checking;
+        self.updateClasses();
 
         // Reset our error messages in case this is a second attempt
         self.errorMessages = [];
 
-        for(var i = 0; i < self._checks.length; i++){
-            var check = self._checks[i];
+        var validationCompleted = function() {
 
-            try {
-                check(value);
-            } catch(error){
-                // The validation failed - an Error exception should have been thrown.
-                self.errorMessages.push(error.message);
+            for (var i = 0; i < self._checks.length; i++) {
+                var check = self._checks[i];
+                if (!check.checked){
+                    // Not all the checks are complete - a later callback will come back here
+                    // when that happens. For now we can't update the status yet.
+                    return;
+                }
             }
-        }
 
-        if (self._isRequired && !self._hasValue){
-            self.errorMessages.push(self.requiredMessage);
-        }
+            if (self._isRequired && !self._hasValue){
+                self.errorMessages.push(self.requiredMessage);
+            }
 
-        if (self.errorMessages.length > 0){
-            self.state = window.rhubarb.validation.states.invalid;
-            self.updateClasses();
-            return false;
+            if (self.errorMessages.length > 0){
+                self.state = window.rhubarb.validation.states.invalid;
+                self.updateClasses();
+
+                if (failureCallback){
+                    failureCallback(self.errorMessages);
+                }
+            } else {
+                self.state = window.rhubarb.validation.states.valid;
+                self.updateClasses();
+
+                if (successCallback){
+                    successCallback();
+                }
+            }
+        };
+
+        if ( self._checks.length > 0 ) {
+            // Do the checks only if we have checks to do
+            for (var i = 0; i < self._checks.length; i++) {
+                var check = self._checks[i];
+                check.checked = false;
+
+                check(
+                    value,
+                    function () {
+                        // On success
+                        this.checked = true;
+                        validationCompleted();
+                    }.bind(check),
+                    function (error) {
+                        // The validation failed - an Error exception should have been thrown.
+                        this.checked = true;
+                        self.errorMessages.push(error);
+                        validationCompleted();
+                    }.bind(check)
+                );
+            }
         } else {
-            self.state = window.rhubarb.validation.states.valid;
-            self.updateClasses();
-            return true;
+            // Otherwise just evaluation completion (essentially allowing for required status only)
+            validationCompleted();
         }
+
+        return self.state == window.rhubarb.validation.states.valid;
     };
 
     this.updateClasses = function(){
@@ -164,42 +200,75 @@ window.rhubarb.validation.sources.fromTextBox = function(textBoxElement){
 // a callback for each validation routine. Our pattern here is to define a function that **returns a callback**.
 // This allows our outer function to define arguments that are then presented to the programmer in any good IDE.
 window.rhubarb.validation.standardValidations.lengthGreaterThan = function(greaterThan, orEqual){
-  return function (value){
+  return function (value, successCallback, failedCallback){
       var compareTo = (orEqual) ? greaterThan - 1 : greaterThan;
       if (value.length > greaterThan){
-          throw new Error("The length must less than " + (orEqual ? " (or equal to) " : "" ) + greaterThan);
+          failedCallback("The length must less than " + (orEqual ? " (or equal to) " : "" ) + greaterThan);
       }
+
+      successCallback();
   };
 };
 
 window.rhubarb.validation.standardValidations.isEmailAddress = function(){
-    return function(value){
+    return function(value, successCallback, failedCallback){
         if (value.indexOf("@") == -1){
-            throw new Error("Email addresses must contain a '@' character");
+            failedCallback("Email addresses must contain a '@' character");
         }
+
+        successCallback();
     }
 };
 
 window.rhubarb.validation.standardValidations.allValid = function(validations) {
-    return function () {
+    return function (value, successCallback, failedCallback) {
         var errors = [];
+        var validationsToCheck = validations;
 
-        for (var i = 0; i < validations.length; i++) {
-            var validationToCheck = validations[i];
+        var checkAll = function() {
 
-            validationToCheck.validate();
+            for (var i = 0; i < validationsToCheck.length; i++) {
+                var validationToCheck = validationsToCheck[i];
 
-            if (validationToCheck.state != window.rhubarb.validation.states.valid) {
-                errors.push(validationToCheck.errorMessages);
+                if (validationToCheck.state != window.rhubarb.validation.states.checking) {
+                    validationToCheck.validate(function(){
+                    }.bind(validationToCheck), function(errorMessages){
+                        errors.push(errorMessages);
+                    }.bind(validationToCheck));
+                }
             }
-        }
 
-        if (errors.length > 1) {
-            throw new Error("Sorry, multiple errors exist on this form.");
-        }
+            for (var j = 0; i < validationsToCheck.length; i++) {
+                var validationToCheckOn = validationsToCheck[i];
+                if (validationToCheckOn.state == window.rhubarb.validation.states.checking){
+                    setTimeout(checkAll, 200);
+                    return;
+                }
+            }
 
-        if (errors.length > 0) {
-            throw new Error("Sorry, there is an error on this form.");
-        }
+            if (errors.length > 1) {
+                failedCallback("Sorry, multiple errors exist on this form.");
+                return;
+            }
+
+            if (errors.length > 0) {
+                failedCallback("Sorry, there is an error on this form.");
+                return;
+            }
+
+            successCallback();
+        };
+
+        checkAll();
     };
+};
+
+// A facility for doing asynchronous validiation
+
+window.rhubarb.validation.AsyncValidation = new function(){
+    var self = this;
+
+    this.raiseError = function(errorMessage) {
+
+    }
 };
