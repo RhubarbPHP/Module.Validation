@@ -116,12 +116,13 @@ window.rhubarb.validation.validator = function(){
         }
 
         if (elementOrCallback instanceof HTMLElement){
-            if ( elementOrCallback.keys.indexOf("value") === -1 ) {
+            if ( typeof elementOrCallback.value == undefined ) {
                 throw new Error("element");
             }
 
+            var element = elementOrCallback;
             elementOrCallback = function () {
-                return elementOrCallback.value;
+                return element.value;
             };
         }
 
@@ -145,6 +146,10 @@ window.rhubarb.validation.validator = function(){
     this.validate = function(successCallback, failureCallback){
 
         var value = (self._source) ? self._source() : false;
+
+        if (value == "0"){
+            value = false;
+        }
 
         self._hasValue = !!value;
 
