@@ -33,6 +33,9 @@ window.rhurbarb.validation.common
 // An object listing common validation data source mappers
 window.rhurbarb.validation.sources
 
+// An object listing common trigger brokers
+window.rhurbarb.validation.triggers
+
 // The validator object that collects checks together and runs them against the source.
 window.rhurbarb.validation.validator
 ```
@@ -42,8 +45,9 @@ code a little more readable:
 
 ``` javascript
 // As window is the default global scope we can just drop it too:
-validation.standardValidations
+validation.common
 validation.sources
+validation.triggers
 validation.validator
 ```
 
