@@ -40,6 +40,9 @@ window.rhubarb.validation.validator = function(){
     this._targetElement = false;
     this._isRequired = false;
     this._hasValue = false;
+    this._messageFormatter = function(errors){
+        return "<p>" + errors + "</p>";
+    };
 
     this.requiredMessage = "A value is required here.";
     this.state = window.rhubarb.validation.states.nottested;
@@ -47,8 +50,12 @@ window.rhubarb.validation.validator = function(){
 
     var self = this;
 
-    this.require = function(){
+    this.require = function(message){
         self._isRequired = true;
+
+        if (message){
+            self.requiredMessage = message;
+        }
 
         return self;
     };
@@ -57,6 +64,10 @@ window.rhubarb.validation.validator = function(){
         self._checks.push(callback);
 
         return self;
+    };
+
+    this.setMessageFormatter = function(formatterCallback){
+        self._messageFormatter = formatterCallback;
     };
 
     this.addTrigger = function(broker){
@@ -208,7 +219,13 @@ window.rhubarb.validation.validator = function(){
                     function (error) {
                         // The validation failed - an Error exception should have been thrown.
                         this.checked = true;
-                        self.errorMessages.push(error);
+                        if (Array.isArray(error)) {
+                            for (var m = 0; m < error.length; m++) {
+                                self.errorMessages.push(error[m]);
+                            }
+                        } else {
+                            self.errorMessages.push(error);
+                        }
                         validationCompleted();
                     }.bind(check)
                 );
@@ -256,7 +273,11 @@ window.rhubarb.validation.validator = function(){
         var errorMessage = self._targetElement.querySelector(".js-validation-message");
 
         if (errorMessage){
-            errorMessage.innerHTML = "<p>" + self.errorMessages.join("<br/>") + "</p>";
+            if( self.errorMessages.length > 0){
+                errorMessage.innerHTML = self._messageFormatter(self.errorMessages);
+            } else {
+                errorMessage.innerHTML = "";
+            }
         }
     }
 };
@@ -330,7 +351,9 @@ window.rhubarb.validation.common.allValid = function(validations) {
                 if (validationToCheck.state != window.rhubarb.validation.states.checking) {
                     validationToCheck.validate(function(){
                     }.bind(validationToCheck), function(errorMessages){
-                        errors.push(errorMessages);
+                        for( var m = 0; m <errorMessages.length; m++){
+                            errors.push(errorMessages[m]);
+                        }
                     }.bind(validationToCheck));
                 }
             }
@@ -344,12 +367,12 @@ window.rhubarb.validation.common.allValid = function(validations) {
             }
 
             if (errors.length > 1) {
-                failedCallback("Sorry, multiple errors exist on this form.");
+                failedCallback(errors);
                 return;
             }
 
             if (errors.length > 0) {
-                failedCallback("Sorry, there is an error on this form.");
+                failedCallback(errors);
                 return;
             }
 
