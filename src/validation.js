@@ -40,8 +40,8 @@ window.rhubarb.validation.validator = function(){
     this._targetElement = false;
     this._isRequired = false;
     this._hasValue = false;
-    this._messageFormatter = function(errors){
-        return "<p>" + errors + "</p>";
+    this._messageFormatter = function (errors) {
+        return "<p>" + errors.join(". ") + "</p>";
     };
 
     this.requiredMessage = "A value is required here.";
@@ -349,24 +349,24 @@ window.rhubarb.validation.common.allValid = function(validations) {
         var errors = [];
         var validationsToCheck = validations;
 
-        var checkAll = function() {
+        for (var i = 0; i < validationsToCheck.length; i++) {
+            var validationToCheck = validationsToCheck[i];
 
+            validationToCheck.validate(
+                function () {
+                },
+                function (errorMessages) {
+                    for (var m = 0; m < errorMessages.length; m++) {
+                        errors.push(errorMessages[m]);
+                    }
+                }.bind(validationToCheck)
+            );
+        }
+
+        var checkAll = function () {
             for (var i = 0; i < validationsToCheck.length; i++) {
-                var validationToCheck = validationsToCheck[i];
-
-                if (validationToCheck.state != window.rhubarb.validation.states.checking) {
-                    validationToCheck.validate(function(){
-                    }.bind(validationToCheck), function(errorMessages){
-                        for( var m = 0; m <errorMessages.length; m++){
-                            errors.push(errorMessages[m]);
-                        }
-                    }.bind(validationToCheck));
-                }
-            }
-
-            for (var j = 0; i < validationsToCheck.length; i++) {
                 var validationToCheckOn = validationsToCheck[i];
-                if (validationToCheckOn.state == window.rhubarb.validation.states.checking){
+                if (validationToCheckOn.state == window.rhubarb.validation.states.checking) {
                     setTimeout(checkAll, 200);
                     return;
                 }
