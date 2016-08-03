@@ -314,6 +314,17 @@ window.rhubarb.validation.common.lengthGreaterThan = function(greaterThan, orEqu
   };
 };
 
+window.rhubarb.validation.common.regex = function(regex, failureMessage){
+    return function(value, successCallback, failedCallback){
+        if (!value.match(regex)){
+            failedCallback(failureMessage);
+            return;
+        }
+
+        successCallback();
+    }
+};
+
 window.rhubarb.validation.common.isEmailAddress = function(){
     return function(value, successCallback, failedCallback){
         if (value.indexOf("@") == -1){
