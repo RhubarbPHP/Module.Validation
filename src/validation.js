@@ -154,15 +154,19 @@ window.rhubarb.validation.validator = function(){
         return self;
     };
 
-    this.validate = function(successCallback, failureCallback){
-
-        var value = (self._source) ? self._source() : false;
-
-        if (value == "0"){
+    this.checkHasValue = function (value) {
+        if (value == "0") {
             value = false;
         }
 
         self._hasValue = !!value;
+    };
+
+    this.validate = function(successCallback, failureCallback){
+
+        var value = (self._source) ? self._source() : false;
+
+        self.checkHasValue(value);
 
         // Update our status to checking (this might be used for slow validations)
         self.state = window.rhubarb.validation.states.checking;
