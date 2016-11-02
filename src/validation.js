@@ -176,19 +176,22 @@ window.rhubarb.validation.validator = function(){
         self.errorMessages = [];
 
         var validationCompleted = function() {
-
             for (var i = 0; i < self._checks.length; i++) {
                 var check = self._checks[i];
-                if (!check.checked){
-                    // Not all the checks are complete - a later callback will come back here
-                    // when that happens. For now we can't update the status yet.
-                    return;
+
+                if (self._hasValue || check.alwaysCheck) {
+                    if (!check.checked) {
+                        // Not all the checks are complete - a later callback will come back here
+                        // when that happens. For now we can't update the status yet.
+                        return;
+                    }
                 }
             }
 
-            if (self._isRequired && !self._hasValue){
+            if (self._isRequired && !self._hasValue) {
                 self.errorMessages.push(self.requiredMessage);
             }
+
 
             if (self.errorMessages.length > 0){
                 self.state = window.rhubarb.validation.states.invalid;
@@ -211,6 +214,12 @@ window.rhubarb.validation.validator = function(){
             // Do the checks only if we have checks to do
             for (var i = 0; i < self._checks.length; i++) {
                 var check = self._checks[i];
+
+                if (!self._hasValue && !check.alwaysCheck){
+                    validationCompleted();
+                    continue;
+                }
+
                 check.checked = false;
 
                 check(
@@ -360,7 +369,7 @@ window.rhubarb.validation.common.matches = function(matchSourceCallback){
 };
 
 window.rhubarb.validation.common.allValid = function(validations) {
-    return function (value, successCallback, failedCallback) {
+    var check = function (value, successCallback, failedCallback) {
         var errors = [];
         var validationsToCheck = validations;
 
@@ -402,4 +411,7 @@ window.rhubarb.validation.common.allValid = function(validations) {
 
         checkAll();
     };
+
+    check.alwaysCheck = true;
+    return check;
 };
