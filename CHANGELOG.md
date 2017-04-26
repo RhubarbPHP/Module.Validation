@@ -1,7 +1,8 @@
 # Changelog
 
-### 1.1.x
+### 1.1.3
 
+Added:  Support for requireWhen to support conditional requirements
 
 ### 1.1.2
 
