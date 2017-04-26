@@ -1,5 +1,9 @@
 # Changelog
 
+### 1.1.4
+
+Added:  Support for sources that return an array - empty array is considered as no value.
+
 ### 1.1.3
 
 Added:  Support for requireWhen to support conditional requirements

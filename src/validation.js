@@ -161,6 +161,11 @@ window.rhubarb.validation.validator = function(){
             value = false;
         }
 
+        if( Object.prototype.toString.call(value) === '[object Array]' ) {
+            value = value.length > 0;
+        }
+
+
         self._hasValue = !!value;
     };
 
