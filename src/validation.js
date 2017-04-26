@@ -38,24 +38,26 @@ window.rhubarb.validation.validator = function(){
     this._triggers = [];
     this._source = false;
     this._targetElement = false;
-    this._isRequired = false;
+    this._isRequiredChecks = [];
     this._hasValue = false;
     this._messageFormatter = function (errors) {
         return "<p>" + errors.join(". ") + "</p>";
     };
 
-    this.requiredMessage = "A value is required here.";
+    this.defaultRequiredMessage = "A value is required here.";
     this.state = window.rhubarb.validation.states.nottested;
     this.errorMessages = [];
 
     var self = this;
 
     this.require = function(message){
-        self._isRequired = true;
+        this.requireWhen(function(){ return true; }, message);
 
-        if (message){
-            self.requiredMessage = message;
-        }
+        return self;
+    };
+
+    this.requireWhen = function(callback, message){
+        self._isRequiredChecks.push([callback, (message) ? message : self.defaultRequiredMessage]);
 
         return self;
     };
@@ -188,8 +190,12 @@ window.rhubarb.validation.validator = function(){
                 }
             }
 
-            if (self._isRequired && !self._hasValue) {
-                self.errorMessages.push(self.requiredMessage);
+            for(var j = 0; j < self._isRequiredChecks.length; j++){
+                var requiredCheck = self._isRequiredChecks[j];
+
+                if (requiredCheck[0](value) && !self._hasValue){
+                  self.errorMessages.push(requiredCheck[1]);
+                }
             }
 
 
@@ -274,7 +280,7 @@ window.rhubarb.validation.validator = function(){
                 break;
         }
 
-        if (self._isRequired){
+        if (self._isRequiredChecks){
             self._targetElement.classList.add("is-required");
 
             if (!self._hasValue){
