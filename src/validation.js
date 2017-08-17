@@ -227,7 +227,6 @@ window.rhubarb.validation.validator = function(){
                 var check = self._checks[i];
 
                 if (!self._hasValue && !check.alwaysCheck){
-                    validationCompleted();
                     continue;
                 }
 
@@ -254,10 +253,9 @@ window.rhubarb.validation.validator = function(){
                     }.bind(check)
                 );
             }
-        } else {
-            // Otherwise just evaluation completion (essentially allowing for required status only)
-            validationCompleted();
         }
+
+        validationCompleted();
 
         return self.state == window.rhubarb.validation.states.valid;
     };
@@ -285,7 +283,7 @@ window.rhubarb.validation.validator = function(){
                 break;
         }
 
-        if (self._isRequiredChecks){
+        if (self._isRequiredChecks.length > 0){
             self._targetElement.classList.add("is-required");
 
             if (!self._hasValue){

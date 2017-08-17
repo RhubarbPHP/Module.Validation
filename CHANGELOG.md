@@ -1,5 +1,10 @@
 # Changelog
 
+### 1.1.5
+
+Fixed:  Fixed issue with ajax callbacks as checks causing doubling of require messages
+Fixed:  Fixed issue with -is-missing and -is-required showing on validation even when not required.
+
 ### 1.1.4
 
 Added:  Support for sources that return an array - empty array is considered as no value.
