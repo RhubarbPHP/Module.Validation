@@ -54,10 +54,10 @@ class ValidationTree
     }
 
     /**
-     * Executes the validation expression against values sourced from the provided callback.
+     * Executes the validation tree against values sourced from the provided callback.
      *
-     * @param callable $valueProvidingCallback
-     * @throws ValidationFailedException
+     * @param callable $valueProvidingCallback A callback function that should return data for a given key.
+     * @throws ValidationFailedException Thrown if validation was not successful
      */
     public function test(callable $valueProvidingCallback)
     {
@@ -68,5 +68,49 @@ class ValidationTree
                 ]);
             }
         }
+    }
+
+    /**
+     * Checks the validation tree against values sourced from the provided callback and returns true or false.
+     *
+     * @param callable $valueProvidingCallback A callback function that should return data for a given key.
+     * @return bool
+     */
+    public function check(callable $valueProvidingCallback): bool
+    {
+        try {
+            $this->test($valueProvidingCallback);
+            return true;
+        } catch (ValidationFailedException $er){
+            return false;
+        }
+    }
+
+    /**
+     * Requires the key to have a value.
+     *
+     * Shorthand for ->validate($key)->notEmpty();
+     *
+     * @param string $key The key to test
+     * @return ValidationTree
+     */
+    public function require(string $key): ValidationTree
+    {
+        return $this->validate($key)->notEmpty();
+    }
+
+    public final function asJavascriptObject()
+    {
+        $list = [];
+
+        foreach($this->validations as $validation){
+            $item = new \stdClass();
+            $item->function = $validation->getJsInvocation();
+            $item->key = $validation->getKey();
+
+            $list[] = $item;
+        }
+
+        return $list;
     }
 }

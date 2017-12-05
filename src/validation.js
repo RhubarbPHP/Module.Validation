@@ -324,6 +324,17 @@ window.rhubarb.validation.triggers.onHtmlElementValueChanged = function(htmlElem
 // Define our standard validation routines. You can of course create your own. The validation framework requires
 // a callback for each validation routine. Our pattern here is to define a function that **returns a callback**.
 // This allows our outer function to define arguments that are then presented to the programmer in any good IDE.
+window.rhubarb.validation.common.notEmpty = function(){
+    return function (value, successCallback, failedCallback){
+        if (!value || value == ""){
+            failedCallback("A value must be supplied");
+            return;
+        }
+
+        successCallback();
+    };
+};
+
 window.rhubarb.validation.common.lengthGreaterThan = function(greaterThan, orEqual){
   return function (value, successCallback, failedCallback){
       var compareTo = (orEqual) ? greaterThan - 1 : greaterThan;

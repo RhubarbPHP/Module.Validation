@@ -10,4 +10,9 @@ class ValidateNotEmpty extends ValidationExpression
     {
         return !empty($value);
     }
+
+    protected function getJsInvocationFunction()
+    {
+        return "window.rhubarb.validation.common.notEmpty";
+    }
 }

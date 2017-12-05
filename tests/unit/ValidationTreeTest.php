@@ -8,7 +8,7 @@ use Rhubarb\Validation\Validations\ValidateNotEmpty;
 use Rhubarb\Validation\ValidationTree;
 use Rhubarb\Validation\ValidationFailedException;
 
-class ValidationExpressionTest extends Unit
+class ValidationTreeTest extends Unit
 {
     public function testFluent()
     {
@@ -54,5 +54,57 @@ class ValidationExpressionTest extends Unit
             verify($errors[0])->isInstanceOf(ValidateNotEmpty::class);
             verify($errors[0]->getKey())->equals("Surname");
         }
+    }
+
+    public function testCheck()
+    {
+        $validationExpression = new ValidationTree();
+        $validationExpression->validate("Forename")->notEmpty();
+
+        $result = $validationExpression->check(function($key){
+            return "Bob";
+        });
+
+        verify($result)->true();
+
+        $result = $validationExpression->check(function($key){
+            return "";
+        });
+
+        verify($result)->false();
+    }
+
+    public function testRequire()
+    {
+        $validationExpression = new ValidationTree();
+        $expression = $validationExpression->require("Forename");
+
+        verify($expression)->same($validationExpression);
+
+        $result = $validationExpression->check(function($key){
+            return "Bob";
+        });
+
+        verify($result)->true();
+
+        $result = $validationExpression->check(function($key){
+            return "";
+        });
+
+        verify($result)->false();
+    }
+
+    public function testJavascriptReflection()
+    {
+        $validationExpression = new ValidationTree();
+        $validationExpression
+            ->require("Forename")
+            ->require("Surname");
+
+        $jsTree = $validationExpression->asJavascriptObject();
+
+        verify($jsTree)->count(2);
+        verify($jsTree[0]->function)->equals("window.rhubarb.validation.common.notEmpty");
+        verify($jsTree[0]->key)->equals("Forename");
     }
 }

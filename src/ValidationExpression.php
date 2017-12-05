@@ -30,4 +30,11 @@ abstract class ValidationExpression
     {
         $this->key = $key;
     }
+
+    public final function getJsInvocation()
+    {
+        return $this->getJsInvocationFunction();
+    }
+
+    protected abstract function getJsInvocationFunction();
 }
