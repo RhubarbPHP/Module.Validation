@@ -1,5 +1,10 @@
 # Changelog
 
+### 2.0.0
+
+Added:     PHP Support
+Changed:   Renamed to module-validation
+
 ### 1.1.5
 
 Fixed:  Fixed issue with ajax callbacks as checks causing doubling of require messages
