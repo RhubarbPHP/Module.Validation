@@ -11,7 +11,7 @@ namespace Rhubarb\Validation;
 
 use Rhubarb\Validation\Validations\ValidateNotEmpty;
 
-class ValidationTree
+class ValidationTree implements \JsonSerializable
 {
     /**
      * The list of validations in the tree.
@@ -112,5 +112,10 @@ class ValidationTree
         }
 
         return $list;
+    }
+
+    public function jsonSerialize()
+    {
+        return $this->asJavascriptObject();
     }
 }
